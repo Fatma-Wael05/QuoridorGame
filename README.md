@@ -39,6 +39,7 @@ Quoridor is an abstract strategy board game invented by Mirko Marchesi (1997). T
 ### Prerequisites
 - Windows 10/11 (64-bit)
 - [MSYS2](https://www.msys2.org) installed at `C:\msys64\`
+- [Visual Studio Code](https://code.visualstudio.com) with the **C/C++ extension** installed
 - GCC and SFML installed via MSYS2
 
 ### Step 1 — Install MSYS2
@@ -59,25 +60,55 @@ cd QuoridorGame
 ```
 
 ### Step 4 — Copy DLLs
-Copy all required DLLs to the `bin/` folder:
+Open the **MSYS2 MINGW64** terminal and run:
 ```bash
-cp /c/msys64/mingw64/bin/*.dll bin/
+cp /c/msys64/mingw64/bin/*.dll /c/Users/YourUsername/C++/QuoridorGame/bin/
 ```
+> Replace `YourUsername` with your actual Windows username.
+
+---
+
+## Method 1: Run from VS Code (Recommended)
+
+### Step 5 — Open in VS Code
+1. Open VS Code
+2. Click **File → Open Folder**
+3. Select the `QuoridorGame` folder
+
+### Step 6 — Build
+Press **Ctrl + Shift + B** — this runs the "Build Quoridor" task which compiles all source files using MSYS2's g++ automatically.
+
+> The compiled executable will be at `bin/Quoridor.exe`
+
+### Step 7 — Run
+Open the VS Code terminal (**Ctrl + `**) and run:
+```bash
+cd bin
+./Quoridor.exe
+```
+
+---
+
+## Method 2: Run from MSYS2 Terminal
 
 ### Step 5 — Compile
 Open the **MSYS2 MINGW64** terminal, navigate to the project folder, and run:
 ```bash
-g++ src/Board.cpp src/Player.cpp src/PathFinder.CPP src/QuoridorEngine.cpp \
-    src/Renderer.cpp src/AI.cpp src/main.cpp \
-    -IC:/msys64/mingw64/include -LC:/msys64/mingw64/lib \
-    -lsfml-graphics -lsfml-window -lsfml-system \
-    -std=c++17 -o bin/QuoridorGame.exe
+cd /c/Users/YourUsername/C++/QuoridorGame
+
+g++ -std=c++17 -O2 \
+    -I C:/msys64/mingw64/include \
+    src/main.cpp src/AI.cpp src/Board.cpp src/PathFinder.CPP \
+    src/Player.cpp src/QuoridorEngine.cpp src/Renderer.cpp \
+    -L C:/msys64/mingw64/lib \
+    -lsfml-graphics -lsfml-window -lsfml-system -lpthread \
+    -o bin/Quoridor.exe
 ```
 
 ### Step 6 — Run
 ```bash
 cd bin
-./QuoridorGame.exe
+./Quoridor.exe
 ```
 
 ---
@@ -132,5 +163,5 @@ QuoridorGame/
 
 | Name | Student ID |
 |------|-----------|
-| [Student Name 1] | [ID] |
-| [Student Name 2] | [ID] |
+| Fatma Wael Taher | [2300974] |
+| Rahma Yosry Mohamed | [2300976] |
