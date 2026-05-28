@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Quoridor",
+            "type": "shell",
+            "command": "C:/msys64/mingw64/bin/g++.exe",
+            "args": [
+                "-std=c++17",
+                "-O2",
+                "-I", "C:/msys64/mingw64/include",
+                "${workspaceFolder}/src/main.cpp",
+                "${workspaceFolder}/src/AI.cpp",
+                "${workspaceFolder}/src/Board.cpp",
+                "${workspaceFolder}/src/PathFinder.CPP",
+                "${workspaceFolder}/src/Player.cpp",
+                "${workspaceFolder}/src/QuoridorEngine.cpp",
+                "${workspaceFolder}/src/Renderer.cpp",
+                "-L", "C:/msys64/mingw64/lib",
+                "-lsfml-graphics",
+                "-lsfml-window",
+                "-lsfml-system",
+                "-lpthread",
+                "-o", "${workspaceFolder}/bin/Quoridor.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc",
+            "options": {
+                "cwd": "${workspaceFolder}/src"
+            }
+        }
+    ]
+}
