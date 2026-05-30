@@ -185,5 +185,5 @@ QuoridorGame/
 
 | Name | Student ID |
 |------|-----------|
-| [Fatma Wael Taher] | [2300974] |
-| [Rahma Yosry Mohamed] | [2300976] |
+| Fatma Wael Taher | 2300974 |
+| Rahma Yosry Mohamed | 2300976 |
