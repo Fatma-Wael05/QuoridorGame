@@ -1,6 +1,6 @@
 # Quoridor Game
 
-A complete implementation of the **Quoridor** board game built in C++ with SFML 3.0, featuring a graphical interface, local multiplayer, and an AI opponent with three difficulty levels.
+A complete implementation of the **Quoridor** board game built in **C++ with SFML 3.0**, featuring a graphical interface, local multiplayer, and an AI opponent with three difficulty levels.
 
 > 🎥 **Demo Video:** [INSERT VIDEO LINK HERE]
 
@@ -8,15 +8,16 @@ A complete implementation of the **Quoridor** board game built in C++ with SFML 
 
 ## Game Description
 
-Quoridor is an abstract strategy board game invented by Mirko Marchesi (1997). Two players each control a pawn and take turns either moving their pawn or placing a wall. The first player to reach the opposite side of the board wins.
+Quoridor is an abstract strategy board game invented by Mirko Marchesi (1997), winner of the Mensa Mind Game award. Two players each control a pawn and take turns either moving their pawn or placing a wall. The first player to reach the opposite side of the board wins.
 
 **Rules summary:**
 - Player 1 (red) starts at the top-center and must reach the bottom row
 - Player 2 (blue) starts at the bottom-center and must reach the top row
-- Each player has 10 walls to place
+- Each player has 10 walls to place (scales with board size)
 - Pawns move one square orthogonally per turn
-- If the opponent is adjacent with no wall between you, you can jump over them
-- Walls block movement but cannot completely cut off any player's path to their goal
+- If the opponent is adjacent with no wall between, you can jump over them
+- If the jump is blocked by a wall, you can move diagonally around the opponent
+- Walls cannot completely cut off any player's path to their goal
 
 ---
 
@@ -30,6 +31,7 @@ Quoridor is an abstract strategy board game invented by Mirko Marchesi (1997). T
 |----------------------|------------|
 | ![Highlights](screenshots/highlights.png) | ![Win](screenshots/win.png) |
 
+> 📷 Screenshots are located in the `screenshots/` folder in this repository.
 
 ---
 
@@ -38,11 +40,11 @@ Quoridor is an abstract strategy board game invented by Mirko Marchesi (1997). T
 ### Prerequisites
 - Windows 10/11 (64-bit)
 - [MSYS2](https://www.msys2.org) installed at `C:\msys64\`
-- [Visual Studio Code](https://code.visualstudio.com) with the **C/C++ extension** installed
+- [Visual Studio Code](https://code.visualstudio.com) with the **C/C++ extension**
 - GCC and SFML installed via MSYS2
 
 ### Step 1 — Install MSYS2
-Download and install from [msys2.org](https://www.msys2.org). Keep the default installation path (`C:\msys64\`).
+Download and install from [msys2.org](https://www.msys2.org). Keep the default path (`C:\msys64\`).
 
 ### Step 2 — Install GCC and SFML
 Open the **MSYS2 MINGW64** terminal and run:
@@ -54,30 +56,30 @@ pacman -S mingw-w64-x86_64-sfml
 
 ### Step 3 — Clone the Repository
 ```bash
-git clone [INSERT REPO LINK HERE]
-cd QuoridorGame
+git clone https://github.com/Fatma-Wael05/QuoridorGamr.git
+cd QuoridorGamr
 ```
 
 ### Step 4 — Copy DLLs
 Open the **MSYS2 MINGW64** terminal and run:
 ```bash
-cp /c/msys64/mingw64/bin/*.dll /c/Users/YourUsername/C++/QuoridorGame/bin/
+cp /c/msys64/mingw64/bin/*.dll bin/
 ```
-> Replace `YourUsername` with your actual Windows username.
 
 ---
 
-## Method 1: Run from VS Code (Recommended)
+## Method 1: Build and Run from VS Code (Recommended)
 
 ### Step 5 — Open in VS Code
 1. Open VS Code
-2. Click **File → Open Folder**
-3. Select the `QuoridorGame` folder
+2. Click **File → Open Folder** and select the `QuoridorGame` folder
 
 ### Step 6 — Build
-Press **Ctrl + Shift + B** — this runs the "Build Quoridor" task which compiles all source files using MSYS2's g++ automatically.
+Press **Ctrl + Shift + B**
 
-> The compiled executable will be at `bin/Quoridor.exe`
+This runs the pre-configured "Build Quoridor" task which compiles all source files automatically using MSYS2's g++.
+
+> ✅ The compiled executable will be at `bin/Quoridor.exe`
 
 ### Step 7 — Run
 Open the VS Code terminal (**Ctrl + `**) and run:
@@ -88,13 +90,16 @@ cd bin
 
 ---
 
-## Method 2: Run from MSYS2 Terminal
+## Method 2: Build and Run from MSYS2 Terminal
 
-### Step 5 — Compile
-Open the **MSYS2 MINGW64** terminal, navigate to the project folder, and run:
+### Step 5 — Navigate to the project
+Open **MSYS2 MINGW64** terminal:
 ```bash
 cd /c/Users/YourUsername/C++/QuoridorGame
+```
 
+### Step 6 — Compile
+```bash
 g++ -std=c++17 -O2 \
     -I C:/msys64/mingw64/include \
     src/main.cpp src/AI.cpp src/Board.cpp src/PathFinder.CPP \
@@ -104,7 +109,7 @@ g++ -std=c++17 -O2 \
     -o bin/Quoridor.exe
 ```
 
-### Step 6 — Run
+### Step 7 — Run
 ```bash
 cd bin
 ./Quoridor.exe
@@ -114,9 +119,11 @@ cd bin
 
 ## Controls
 
-### Menu
+### Main Menu
 | Key | Action |
 |-----|--------|
+| `S` | Decrease board size (min 5×5) |
+| `B` | Increase board size (max 13×13) |
 | `1` | Start Human vs Human |
 | `2` | Start Human vs AI (Easy) |
 | `3` | Start Human vs AI (Medium) |
@@ -126,15 +133,28 @@ cd bin
 | Input | Action |
 |-------|--------|
 | `Arrow Keys` | Move your pawn (up / down / left / right) |
-| `Mouse Left Click` on a gap | Place a wall at that position |
+| `Left Mouse Click` on a gap between squares | Place a wall |
 | `R` | Reset the current game |
 | `ESC` | Return to the main menu |
 
 ### Notes
-- Arrow keys automatically attempt a jump if the opponent is adjacent
-- Clicking on a playable square (not a gap) does nothing — walls are gap-only
+- Arrow keys automatically jump over the opponent if they are adjacent
+- Clicking directly on a square (not a gap) does nothing — walls are gap-only
 - Valid moves are highlighted in **green** on your turn
-- Status messages appear briefly after each action to confirm or explain errors
+- Status messages appear briefly after every action to confirm success or explain errors
+
+---
+
+## Bonus Features
+
+### AI Difficulty Levels
+Three AI difficulty levels using Minimax with Alpha-Beta Pruning:
+- **Easy** — Depth 1, pawn moves only, greedy
+- **Medium** — Depth 3, uses walls strategically
+- **Hard** — Depth 5, deep lookahead, strongest opponent
+
+### Custom Board Sizes
+The game supports custom board sizes from 5×5 to 13×13. Use **S** and **B** keys on the main menu to change the board size before starting a game. All game rules, wall counts, and AI scale automatically.
 
 ---
 
@@ -143,16 +163,19 @@ cd bin
 ```
 QuoridorGame/
 ├── src/
-│   ├── Point.h              # Core types: Point, CellType, Orientation
-│   ├── Board.h / Board.cpp  # 17x17 internal grid
-│   ├── Player.h / Player.cpp
-│   ├── PathFinder.h / PathFinder.CPP
-│   ├── QuoridorEngine.h / QuoridorEngine.cpp
-│   ├── AI.h / AI.cpp        # Minimax with Alpha-Beta pruning
-│   ├── Renderer.h / Renderer.cpp
-│   └── main.cpp
-├── bin/                     # Compiled executable + DLLs
-├── screenshots/             # Screenshots for README
+│   ├── Point.h                    # Core types: Point, CellType, Orientation
+│   ├── Board.h / Board.cpp        # 17×17 internal grid representation
+│   ├── Player.h / Player.cpp      # Player state management
+│   ├── PathFinder.h / PathFinder.CPP  # BFS path validation
+│   ├── QuoridorEngine.h / QuoridorEngine.cpp  # Game rules engine
+│   ├── AI.h / AI.cpp              # Minimax with Alpha-Beta pruning
+│   ├── Renderer.h / Renderer.cpp  # SFML rendering pipeline
+│   └── main.cpp                   # Entry point and game loop
+├── bin/                           # Compiled executable + DLLs
+├── .vscode/
+│   └── tasks.json                 # VS Code build task
+├── screenshots/                   # Screenshots for README
+├── .gitignore
 └── README.md
 ```
 
@@ -162,5 +185,5 @@ QuoridorGame/
 
 | Name | Student ID |
 |------|-----------|
-| Fatma Wael Taher | [2300974] |
-| Rahma Yosry Mohamed | [2300976] |
+| [Fatma Wael Taher] | [2300974] |
+| [Rahma Yosry Mohamed] | [2300976] |
