@@ -1,0 +1,34 @@
+# Compiled binaries
+bin/*.exe
+bin/*.o
+bin/*.obj
+
+# Keep DLLs and the bin folder itself
+!bin/.gitkeep
+!bin/*.dll
+
+# Build artifacts
+*.o
+*.obj
+*.ilk
+*.pdb
+*.exp
+*.lib
+
+# VS Code settings (keep tasks.json but ignore others)
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# MinGW / MSYS2 temp files
+*.d
+
+# CMake (if used)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile

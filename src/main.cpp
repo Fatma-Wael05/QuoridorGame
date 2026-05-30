@@ -13,51 +13,76 @@
 enum class GameMode { MENU, HVH, HVA };
 
 // ─── Pixel → board coordinate ─────────────────────────────────────────────────
-// Returns the internal 17x17 grid point that was clicked, and whether it is a gap.
+// Converts a mouse click to an internal (2*boardSize-1) grid coordinate.
+// Returns isGap=true if the click landed on a gap (wall area).
 struct ClickResult { Point point; bool isGap; };
 
-ClickResult pixelToBoard(int mouseX, int mouseY) {
-    const int CELL_SIZE = 56;
-    const int GAP       = 10;
-    const int OFFSET_X  = 30;
-    const int OFFSET_Y  = 70;
+// Compute the same cellSize and gap as Renderer does for this boardSize.
+// Must stay in sync with Renderer constructor formula.
+void computeSizes(int boardSize, int& cellSize, int& gap) {
+    const int BOARD_AREA = 640;
+    float divisor = (float)boardSize + (float)(boardSize - 1) / 6.0f;
+    cellSize = (int)(BOARD_AREA / divisor);
+    gap      = std::max(4, cellSize / 6);
+    cellSize = (BOARD_AREA - (boardSize - 1) * gap) / boardSize;
+}
+
+ClickResult pixelToBoard(int mouseX, int mouseY, int boardSize) {
+    const int OFFSET_X = 30;
+    const int OFFSET_Y = 70;
+
+    int cellSize, gap;
+    computeSizes(boardSize, cellSize, gap);
+    int totalCell = cellSize + gap;
 
     int relX = mouseX - OFFSET_X;
     int relY = mouseY - OFFSET_Y;
     if (relX < 0 || relY < 0) return {Point(-1,-1), false};
 
-    int totalCell = CELL_SIZE + GAP;
     int col = relX / totalCell;
     int row = relY / totalCell;
-    if (col > 8 || row > 8) return {Point(-1,-1), false};
+    if (col >= boardSize || row >= boardSize) return {Point(-1,-1), false};
 
     int offX = relX % totalCell;
     int offY = relY % totalCell;
 
-    bool inCellX = offX < CELL_SIZE;
-    bool inCellY = offY < CELL_SIZE;
-    bool inGapX  = offX >= CELL_SIZE;
-    bool inGapY  = offY >= CELL_SIZE;
+    bool inCellX = offX < cellSize;
+    bool inCellY = offY < cellSize;
+    bool inGapX  = offX >= cellSize;
+    bool inGapY  = offY >= cellSize;
 
     int ir = row * 2;
     int ic = col * 2;
 
-    if      (inCellX && inCellY)            return {Point(ir,     ic),     false};
-    else if (inGapX  && inCellY && col < 8) return {Point(ir,     ic + 1), true };
-    else if (inCellX && inGapY  && row < 8) return {Point(ir + 1, ic),     true };
-    else if (inGapX  && inGapY)             return {Point(ir + 1, ic + 1), true };
+    if      (inCellX && inCellY)                        return {Point(ir,     ic),     false};
+    else if (inGapX  && inCellY && col < boardSize - 1) return {Point(ir,     ic + 1), true };
+    else if (inCellX && inGapY  && row < boardSize - 1) return {Point(ir + 1, ic),     true };
+    else if (inGapX  && inGapY)                         return {Point(ir + 1, ic + 1), true };
     return {Point(-1,-1), false};
 }
 
 // ─── Menu draw ────────────────────────────────────────────────────────────────
-void drawMenu(sf::RenderWindow& window, sf::Font& font) {
+void drawMenu(sf::RenderWindow& window, sf::Font& font, int boardSize) {
     window.clear(sf::Color(30, 30, 40));
 
+    // Title
     sf::Text title(font, "QUORIDOR", 60);
     title.setFillColor(sf::Color(240, 200, 100));
-    title.setPosition(sf::Vector2f(220.f, 60.f));
+    title.setPosition(sf::Vector2f(220.f, 40.f));
     window.draw(title);
 
+    // Board size selector
+    sf::Text sizeLabel(font, "Board Size: " + std::to_string(boardSize) + "x" + std::to_string(boardSize), 22);
+    sizeLabel.setFillColor(sf::Color(180, 220, 180));
+    sizeLabel.setPosition(sf::Vector2f(250.f, 130.f));
+    window.draw(sizeLabel);
+
+    sf::Text sizeHint(font, "[ S ] Smaller       [ B ] Bigger", 17);
+    sizeHint.setFillColor(sf::Color(100, 140, 100));
+    sizeHint.setPosition(sf::Vector2f(225.f, 158.f));
+    window.draw(sizeHint);
+
+    // Game mode options
     const std::string options[] = {
         "1.  Human vs Human",
         "2.  Human vs AI  (Easy)",
@@ -73,13 +98,13 @@ void drawMenu(sf::RenderWindow& window, sf::Font& font) {
     for (int i = 0; i < 4; i++) {
         sf::Text opt(font, options[i], 28);
         opt.setFillColor(optColors[i]);
-        opt.setPosition(sf::Vector2f(200.f, 200.f + i * 70.f));
+        opt.setPosition(sf::Vector2f(200.f, 210.f + i * 68.f));
         window.draw(opt);
     }
 
-    sf::Text hint(font, "Press 1 / 2 / 3 / 4 to choose", 18);
+    sf::Text hint(font, "Press 1 / 2 / 3 / 4 to start", 17);
     hint.setFillColor(sf::Color(120, 120, 120));
-    hint.setPosition(sf::Vector2f(230.f, 520.f));
+    hint.setPosition(sf::Vector2f(240.f, 500.f));
     window.draw(hint);
 
     window.display();
@@ -87,8 +112,6 @@ void drawMenu(sf::RenderWindow& window, sf::Font& font) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 int main() {
-    const int BOARD_SIZE = 9;
-
     sf::RenderWindow window(sf::VideoMode({700u, 720u}), "Quoridor");
     window.setFramerateLimit(60);
 
@@ -97,6 +120,10 @@ int main() {
         std::cerr << "Could not load font!" << std::endl;
         return -1;
     }
+
+    // ── Runtime board size (custom board size bonus feature) ───────────────────
+    // Min = 5, Max = 13, must be odd (so pawns start at center)
+    int boardSize = 9;  // default standard size
 
     // ── Game state ─────────────────────────────────────────────────────────────
     GameMode   gameMode = GameMode::MENU;
@@ -113,24 +140,16 @@ int main() {
     std::mutex        aiMutex;
 
     // ── Status message state ───────────────────────────────────────────────────
-    // statusMsg:   the text to show ("Invalid move!", "Wall would block path!", etc.)
-    // statusAlpha: 0-255, decremented each frame to fade the message out
     std::string statusMsg   = "";
     int         statusAlpha = 0;
-    const int   FADE_START  = 255;  // alpha when message first appears
-    const int   FADE_SPEED  = 3;    // alpha decremented per frame (~1.4 seconds to fade)
+    const int   FADE_START  = 255;
+    const int   FADE_SPEED  = 3;
 
     // ── Valid moves cache ──────────────────────────────────────────────────────
-    // Recomputed whenever the turn changes or a move is made.
-    // During AI's turn this is empty (no highlighting needed).
     std::vector<Point> validMoves;
 
     auto refreshValidMoves = [&]() {
-        if (!engine || engine->isGameOver()) {
-            validMoves.clear();
-            return;
-        }
-        // Show highlights only on human turns
+        if (!engine || engine->isGameOver()) { validMoves.clear(); return; }
         bool isHumanTurn = !(gameMode == GameMode::HVA && engine->getCurrentIndex() == 1);
         if (isHumanTurn && !aiThinking.load())
             validMoves = engine->getValidMoves();
@@ -146,7 +165,7 @@ int main() {
     // ── AI launcher ───────────────────────────────────────────────────────────
     auto launchAI = [&]() {
         if (aiThinking.load()) return;
-        validMoves.clear();          // hide highlights while AI thinks
+        validMoves.clear();
         aiThinking  = true;
         aiMoveReady = false;
 
@@ -165,11 +184,11 @@ int main() {
         }).detach();
     };
 
-    // ── Reset / Start helpers ──────────────────────────────────────────────────
+    // ── Reset helper ──────────────────────────────────────────────────────────
     auto resetGame = [&]() {
         while (aiThinking.load()) {}
-        delete engine;   engine   = new QuoridorEngine(BOARD_SIZE);
-        delete renderer; renderer = new Renderer(window);
+        delete engine;   engine   = new QuoridorEngine(boardSize);
+        delete renderer; renderer = new Renderer(window, boardSize);
         renderer->loadFont();
         if (gameMode == GameMode::HVA) {
             delete ai; ai = new AI(1, aiDiff);
@@ -181,11 +200,12 @@ int main() {
         refreshValidMoves();
     };
 
+    // ── Start game helper ─────────────────────────────────────────────────────
     auto startGame = [&](GameMode mode, Difficulty diff) {
         gameMode = mode;
         aiDiff   = diff;
-        engine   = new QuoridorEngine(BOARD_SIZE);
-        renderer = new Renderer(window);
+        engine   = new QuoridorEngine(boardSize);
+        renderer = new Renderer(window, boardSize);
         renderer->loadFont();
         if (mode == GameMode::HVA)
             ai = new AI(1, diff);
@@ -201,29 +221,33 @@ int main() {
     // ═══════════════════════════════════════════════════════════════════════════
     while (window.isOpen()) {
 
-        // ── Event handling ──────────────────────────────────────────────────────
         while (const std::optional<sf::Event> eventOpt = window.pollEvent()) {
             const sf::Event& event = *eventOpt;
 
-            // Window close
             if (event.is<sf::Event::Closed>()) {
                 while (aiThinking.load()) {}
                 window.close();
             }
 
-            // Key press
             if (const auto* kp = event.getIf<sf::Event::KeyPressed>()) {
                 auto key = kp->scancode;
 
-                // ── Menu navigation ─────────────────────────────────────────────
+                // ── Menu controls ────────────────────────────────────────────
                 if (gameMode == GameMode::MENU) {
+                    // Board size selection (S = smaller, B = bigger, odd values only)
+                    if (key == sf::Keyboard::Scan::S && boardSize > 5)
+                        boardSize -= 2;
+                    if (key == sf::Keyboard::Scan::B && boardSize < 13)
+                        boardSize += 2;
+
+                    // Game mode selection
                     if (key == sf::Keyboard::Scan::Num1) startGame(GameMode::HVH, Difficulty::EASY);
                     if (key == sf::Keyboard::Scan::Num2) startGame(GameMode::HVA, Difficulty::EASY);
                     if (key == sf::Keyboard::Scan::Num3) startGame(GameMode::HVA, Difficulty::MEDIUM);
                     if (key == sf::Keyboard::Scan::Num4) startGame(GameMode::HVA, Difficulty::HARD);
 
                 } else {
-                    // ── In-game keys ───────────────────────────────────────────
+                    // ── In-game controls ─────────────────────────────────────
                     if (key == sf::Keyboard::Scan::R) resetGame();
 
                     if (key == sf::Keyboard::Scan::Escape) {
@@ -239,8 +263,7 @@ int main() {
                         gameMode = GameMode::MENU;
                     }
 
-                    // ── Arrow key pawn movement ────────────────────────────────
-                    // Only allowed on human turns, not while AI is computing
+                    // ── Arrow key pawn movement ───────────────────────────────
                     if (engine && !engine->isGameOver() && !aiThinking.load()) {
                         bool isHumanTurn = !(gameMode == GameMode::HVA &&
                                              engine->getCurrentIndex() == 1);
@@ -255,7 +278,7 @@ int main() {
                             if (key == sf::Keyboard::Scan::Right) dest = Point(pos.x, pos.y + 2);
 
                             if (dest.x != -1) {
-                                // If arrow lands on opponent, attempt straight jump
+                                // Auto-extend to jump if destination is opponent
                                 if (dest == oppPos) {
                                     if (key == sf::Keyboard::Scan::Up)    dest = Point(pos.x - 4, pos.y);
                                     if (key == sf::Keyboard::Scan::Down)  dest = Point(pos.x + 4, pos.y);
@@ -272,14 +295,12 @@ int main() {
                                         !engine->isGameOver())
                                         launchAI();
                                 } else {
-                                    // Determine reason for failure
-                                    if (!engine->getBoard().isWithinBounds(dest.x, dest.y)) {
+                                    if (!engine->getBoard().isWithinBounds(dest.x, dest.y))
                                         setStatus("Invalid move! Cannot move outside the board.");
-                                    } else if (engine->getBoard().getCellType(dest.x, dest.y) == CellType::PAWN) {
+                                    else if (engine->getBoard().getCellType(dest.x, dest.y) == CellType::PAWN)
                                         setStatus("Invalid move! That square is occupied.");
-                                    } else {
+                                    else
                                         setStatus("Invalid move! A wall is blocking that direction.");
-                                    }
                                 }
                             }
                         }
@@ -287,7 +308,7 @@ int main() {
                 }
             }
 
-            // ── Mouse click — wall placement ────────────────────────────────────
+            // ── Mouse click — wall placement ──────────────────────────────────
             if (gameMode != GameMode::MENU && engine &&
                 !engine->isGameOver() && !aiThinking.load()) {
 
@@ -302,36 +323,29 @@ int main() {
                             int   mappedX = (int)(mp->position.x * scaleX);
                             int   mappedY = (int)(mp->position.y * scaleY);
 
-                            ClickResult cr = pixelToBoard(mappedX, mappedY);
+                            ClickResult cr = pixelToBoard(mappedX, mappedY, boardSize);
 
                             if (cr.isGap && cr.point.x != -1) {
                                 int  r     = cr.point.x;
                                 int  c     = cr.point.y;
                                 bool moved = false;
+                                int  maxI  = 2 * boardSize - 2; // max internal index
 
-                                // Determine orientation from which gap was clicked:
-                                // Odd row, even col  → horizontal gap below a row → H wall
-                                // Even row, odd col  → vertical gap right of col  → V wall
-                                // Odd row, odd col   → corner → try both orientations
                                 if (r % 2 == 1 && c % 2 == 0) {
-                                    // Horizontal wall: snap center to (r, c-1) or (r, c+1)
                                     int snapC = (c > 0) ? c - 1 : c + 1;
                                     moved = engine->placeWall(Point(r, snapC), Orientation::HORIZONTAL);
                                     if (!moved) {
-                                        // Try the other snap direction
-                                        snapC = (c < 16) ? c + 1 : c - 1;
+                                        snapC = (c < maxI) ? c + 1 : c - 1;
                                         moved = engine->placeWall(Point(r, snapC), Orientation::HORIZONTAL);
                                     }
                                 } else if (r % 2 == 0 && c % 2 == 1) {
-                                    // Vertical wall: snap center to (r-1, c) or (r+1, c)
                                     int snapR = (r > 0) ? r - 1 : r + 1;
                                     moved = engine->placeWall(Point(snapR, c), Orientation::VERTICAL);
                                     if (!moved) {
-                                        snapR = (r < 16) ? r + 1 : r - 1;
+                                        snapR = (r < maxI) ? r + 1 : r - 1;
                                         moved = engine->placeWall(Point(snapR, c), Orientation::VERTICAL);
                                     }
                                 } else if (r % 2 == 1 && c % 2 == 1) {
-                                    // Corner: try horizontal first, then vertical
                                     moved = engine->placeWall(Point(r, c), Orientation::HORIZONTAL);
                                     if (!moved)
                                         moved = engine->placeWall(Point(r, c), Orientation::VERTICAL);
@@ -345,13 +359,9 @@ int main() {
                                         !engine->isGameOver())
                                         launchAI();
                                 } else {
-                                    // Determine specific reason for wall failure
                                     if (engine->getPlayer(engine->getCurrentIndex()).getWallCount() == 0) {
                                         setStatus("No walls remaining!");
                                     } else {
-                                        // The only reason placeWall fails when you have walls and
-                                        // the slot is structurally available is the BFS block check.
-                                        // Check if it's structural (already occupied) vs path-blocking.
                                         Point testCenter;
                                         Orientation testOrient = Orientation::HORIZONTAL;
                                         if (r % 2 == 1 && c % 2 == 0) {
@@ -362,13 +372,11 @@ int main() {
                                         } else {
                                             testCenter = Point(r, c);
                                         }
-
                                         if (!engine->canPlaceWall(testCenter, testOrient) &&
-                                            !engine->canPlaceWall(testCenter, Orientation::VERTICAL)) {
+                                            !engine->canPlaceWall(testCenter, Orientation::VERTICAL))
                                             setStatus("Cannot place wall here! Space already occupied.");
-                                        } else {
+                                        else
                                             setStatus("Invalid wall! It would completely block a player's path.");
-                                        }
                                     }
                                 }
                             }
@@ -378,7 +386,7 @@ int main() {
             }
         }
 
-        // ── Apply AI result when thread finishes ──────────────────────────────
+        // ── Apply AI result ────────────────────────────────────────────────────
         if (gameMode == GameMode::HVA && engine &&
             aiMoveReady.load() && !engine->isGameOver()) {
             AIMove move;
@@ -391,11 +399,10 @@ int main() {
                 engine->placeWall(move.target, move.orient);
             else
                 engine->movePlayer(move.target);
-
-            refreshValidMoves(); // recompute highlights for human's next turn
+            refreshValidMoves();
         }
 
-        // ── Fade status message ───────────────────────────────────────────────
+        // ── Fade status message ────────────────────────────────────────────────
         if (statusAlpha > 0) {
             statusAlpha -= FADE_SPEED;
             if (statusAlpha < 0) statusAlpha = 0;
@@ -405,7 +412,7 @@ int main() {
         window.clear(sf::Color(30, 30, 40));
 
         if (gameMode == GameMode::MENU) {
-            drawMenu(window, font);
+            drawMenu(window, font, boardSize);
         } else if (renderer && engine) {
             renderer->drawAll(*engine,
                               validMoves,
