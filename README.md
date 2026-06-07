@@ -67,8 +67,15 @@ cp /c/msys64/mingw64/bin/*.dll bin/
 ```
 
 ---
+## Method 3: Run Directly (Easiest — No Setup Required)
 
-## Method 1: Build and Run from VS Code (Recommended)
+If you just want to run the game without compiling:
+
+1. Navigate to the `bin/` folder
+2. Double-click **`PlayQuoridor.bat`**
+3. The game launches immediately
+---
+## Method 2: Build and Run from VS Code (Recommended)
 
 ### Step 5 — Open in VS Code
 1. Open VS Code
@@ -90,7 +97,7 @@ cd bin
 
 ---
 
-## Method 2: Build and Run from MSYS2 Terminal
+## Method 3: Build and Run from MSYS2 Terminal
 
 ### Step 5 — Navigate to the project
 Open **MSYS2 MINGW64** terminal:
