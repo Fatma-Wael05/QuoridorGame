@@ -67,7 +67,7 @@ cp /c/msys64/mingw64/bin/*.dll bin/
 ```
 
 ---
-## Method 3: Run Directly (Easiest — No Setup Required)
+## Method 1: Run Directly (Easiest — No Setup Required)
 
 If you just want to run the game without compiling:
 
